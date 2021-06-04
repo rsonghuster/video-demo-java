@@ -1,0 +1,7 @@
+{
+  "ossBucketName":"pumpkin-video",
+  "videoKey":"inputs/480P.mov",
+  "outputPrefix":"outputs/",
+  "segmentTimeSeconds":40,
+  "executionName":"test"
+}

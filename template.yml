@@ -1,0 +1,90 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Transform: 'Aliyun::Serverless-2018-04-03'
+Resources:
+  pumpkin-video-java:
+    Type: 'Aliyun::Serverless::Service'
+    Properties:
+      Description: fnf-video-processing
+      LogConfig: Auto
+      NasConfig: Auto
+      Policies:
+        - Version: '1' # Allow ListObjects, Get/PutObject, and FC InvokeFunction
+          Statement:
+            - Effect: Allow
+              Action:
+                - oss:ListObjects
+                - oss:GetObject
+                - oss:PutObject
+                - oss:DeleteObject
+                - fc:InvokeFunction
+                - fnf:*
+                - log:*
+                - cdn:*
+                - yundun-greenweb:*
+              Resource: '*'
+
+    init:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: example.App::handleRequest
+        Initializer: example.App::initialize
+        Runtime: java8
+        MemorySize: 512
+        CodeUri: 'functions/init'
+
+    censor:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: example.App::handleRequest
+        Initializer: example.App::initialize
+        Runtime: java8
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: 'functions/media-censor'
+        EnvironmentVariables:
+          TZ: Asia/Shanghai
+
+    get-censor-status:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: example.App::handleRequest
+        Initializer: example.App::initialize
+        Runtime: java8
+        Timeout: 600
+        MemorySize: 128
+        CodeUri: functions/get-censor-status
+        EnvironmentVariables:
+          TZ: Asia/Shanghai
+
+    split:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: example.App::handleRequest
+        Initializer: example.App::initialize
+        Runtime: java8
+        Timeout: 7200
+        MemorySize: 16384
+        InstanceType: "c1"
+        CodeUri: functions/split
+        EnvironmentVariables:
+          TZ: Asia/Shanghai
+
+    clean:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: example.App::handleRequest
+        Initializer: example.App::initialize
+        Runtime: java8
+        Timeout: 600
+        MemorySize: 512
+        CodeUri: functions/clean
+        EnvironmentVariables:
+          TZ: Asia/Shanghai
+
+  pumpkin-video-flow-java:
+    Type: 'Aliyun::Serverless::Flow'
+    Properties:
+      Description: FnF video processing demo flow
+      DefinitionUri: flows/video-processing-fc.yml
+      Policies:
+        - AliyunFCInvocationAccess

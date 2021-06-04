@@ -1,0 +1,107 @@
+version: v1beta1
+type: flow
+steps:
+  - type: task
+    name: Init
+    resourceArn: 'acs:fc:::services/pumpkin-video-java/functions/init'
+    retry:
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+        intervalSeconds: 3
+        maxAttempts: 16
+        multiplier: 2
+    catch:
+      - errors:
+          - FnF.ALL
+        goto: NotifyFailed
+  - type: task
+    name: Split
+    resourceArn: 'acs:fc:::services/pumpkin-video-java/functions/split'
+    retry:
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+          - ExceptionNeedsRetry
+        intervalSeconds: 3
+        maxAttempts: 16
+        multiplier: 2
+    catch:
+      - errors:
+          - FnF.ALL
+        goto: NotifyFailed
+  - type: task
+    name: Censor
+    resourceArn: 'acs:fc:::services/pumpkin-video-java/functions/censor'
+    retry:
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+          - ExceptionNeedsRetry
+        intervalSeconds: 3
+        maxAttempts: 16
+        multiplier: 2
+    catch:
+      - errors:
+          - FnF.ALL
+        goto: NotifyFailed
+  - type: wait
+    name: Wait5s
+    duration: 5
+  - type: task
+    name: GetCensorStatus
+    resourceArn: 'acs:fc:::services/pumpkin-video-java/functions/get-censor-status'
+    retry:
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+          - ExceptionNeedsRetry
+        intervalSeconds: 3
+        maxAttempts: 16
+        multiplier: 2
+    catch:
+      - errors:
+          - FnF.ALL
+        goto: NotifyFailed
+  - type: choice
+    name: IsCensorComplete
+    inputMappings:
+      - target: status
+        source: $local.censorStatus
+    choices:
+      - condition: $.status == "running"
+        goto: Wait5s
+  - type: task
+    name: Clean
+    resourceArn: 'acs:fc:::services/pumpkin-video-java/functions/clean'
+    retry:
+      - errors:
+          - FC.ResourceThrottled
+          - FC.ResourceExhausted
+          - FC.InternalServerError
+          - FnF.TaskTimeout
+          - FC.Unknown
+          - ExceptionNeedsRetry
+        intervalSeconds: 3
+        maxAttempts: 16
+        multiplier: 2
+    catch:
+      - errors:
+          - FnF.ALL
+        goto: NotifyFailed
+  - type: succeed
+    name: NotifySucceess
+  - type: fail
+    name: NotifyFailed
